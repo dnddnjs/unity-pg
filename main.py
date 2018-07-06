@@ -1,4 +1,3 @@
-import gym
 import torch
 import argparse
 import numpy as np
@@ -48,6 +47,8 @@ if __name__=="__main__":
 
     actor = Actor(num_inputs, num_actions)
     critic = Critic(num_inputs)
+    torch.load('save_model/actor')
+    torch.load('save_model/critic')
 
     actor_optim = optim.Adam(actor.parameters(), lr=hp.actor_lr)
     critic_optim = optim.Adam(critic.parameters(), lr=hp.critic_lr,
@@ -62,15 +63,6 @@ if __name__=="__main__":
         steps = 0
         scores = []
         while steps < 2048:
-            train_mode = True
-
-            if episodes % 100 == 0:
-                env.close()
-                env = UnityEnvironment(file_name=env_name)
-                default_brain = env.brain_names[0]
-                brain = env.brains[default_brain]
-                train_mode = False
-
             episodes += 1
             env_info = env.reset(train_mode=train_mode)[default_brain]
             state = env_info.vector_observations[0]
@@ -102,8 +94,14 @@ if __name__=="__main__":
 
                 if done:
                     break
+
             scores.append(score)
         score_avg = np.mean(scores)
         print('{} episode score is {:.2f}'.format(episodes, score_avg))
         actor.train(), critic.train()
         train_model(actor, critic, memory, actor_optim, critic_optim)
+        if iter % 10:
+            torch.save(actor, 'save_model/actor')
+            torch.save(critic, 'save_model/critic')
+
+    env.close()
